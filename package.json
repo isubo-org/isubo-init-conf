@@ -1,0 +1,31 @@
+{
+  "name": "isubo-init-conf",
+  "version": "0.0.0",
+  "description": "A CLI-prompt for initializing isubo's configuration",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isubo-org/isubo-init-conf.git"
+  },
+  "keywords": [
+    "cli-tool",
+    "\"init",
+    "conf\"",
+    "\"isubo\""
+  ],
+  "author": "isaaxite",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/isubo-org/isubo-init-conf/issues"
+  },
+  "homepage": "https://github.com/isubo-org/isubo-init-conf#readme",
+  "dependencies": {
+    "js-yaml": "^4.1.0",
+    "prompts": "^2.4.2",
+    "yargs": "^17.7.2"
+  }
+}
