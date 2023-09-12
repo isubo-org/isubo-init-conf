@@ -1,11 +1,13 @@
 {
-  "name": "isubo-init-conf",
+  "name": "@isubo-org/init-conf",
   "version": "0.0.0",
   "description": "A CLI-prompt for initializing isubo's configuration",
   "type": "module",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "node ./scripts/build.js",
+    "postversion": "git push && git push origin --tags"
   },
   "repository": {
     "type": "git",
@@ -13,9 +15,9 @@
   },
   "keywords": [
     "cli-tool",
-    "\"init",
-    "conf\"",
-    "\"isubo\""
+    "init",
+    "conf",
+    "isubo"
   ],
   "author": "isaaxite",
   "license": "MIT",
@@ -27,5 +29,21 @@
     "js-yaml": "^4.1.0",
     "prompts": "^2.4.2",
     "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@isubo-org/cli-scaffold": "0.0.1-alpha.2",
+    "@isubo-org/publish": "^0.0.2",
+    "@isubo-org/version": "0.0.2-alpha.5",
+    "rollup": "^3.29.1",
+    "rollup-plugin-copy": "^3.5.0",
+    "rollup-plugin-terser": "^7.0.2"
+  },
+  "bin": {
+    "isubo-init-conf": "bin/index.js"
+  },
+  "standard-version": {
+    "scripts": {
+      "posttag": "npm run postversion"
+    }
   }
 }

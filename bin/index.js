@@ -6,10 +6,8 @@ import { init } from '../main.js';
 yargs(process.argv.slice(2))
   .usage(
     `$0`,
-    'xxx',
+    `Initializing isubo's configuration`,
     () => {},
-    async () => {
-      await init();
-    },
+    async () => init(),
   )
   .parse();
