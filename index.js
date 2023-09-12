@@ -1,4 +1,5 @@
 import path from 'path';
+import chalk from 'chalk';
 import { writeFileSync } from 'fs';
 import prompts from 'prompts';
 import { dump as yamlDump } from 'js-yaml';
@@ -9,17 +10,40 @@ const enumInitialWayType = {
   FULL: 'full',
 };
 
+const enumTokenSettingType = {
+  PLAINTEXT: 'plaintext',
+  ENVIRONMENT_VARIABLES: 'environment_variables'
+};
+
+let curTokenSettingType = enumTokenSettingType.ENVIRONMENT_VARIABLES;
+
+function streamlog(text) {
+  process.stderr.write(text + '\n');
+}
+
+function hinterWarn(text) {
+  const prefix = chalk.bgGreenBright(chalk.black(' WARN '));
+  streamlog(`${prefix} ${text}`);
+}
+
 async function text({ message, initial, ...rest }) {
   const params = {
     type: 'text',
     name: 'value',
     message,
+    validate(value) {
+      return !!value;
+    },
     ...rest,
   };
   if (initial) {
     params.initial = initial;
   }
   const { value } = await prompts(params);
+
+  if (!value) {
+    process.exit(1);
+  }
 
   return value;
 }
@@ -32,6 +56,10 @@ async function select({ message, choices, ...rest }) {
     choices,
     ...rest,
   });
+
+  if (!value) {
+    process.exit(1);
+  }
 
   return value;
 }
@@ -56,7 +84,7 @@ async function select({ message, choices, ...rest }) {
 
 async function initOwner(conf) {
   const value = await text({
-    message: 'Enter your owner on GitHub'
+    message: `Set your ${chalk.redBright('<owner>')} on GitHub`
   });
 
   conf.githubInfo.owner.value = value;
@@ -64,7 +92,7 @@ async function initOwner(conf) {
 
 async function initRepo(conf) {
   const value = await text({
-    message: 'Enter your repo on GitHub'
+    message: `Set your ${chalk.redBright('<repo>')} on GitHub`
   });
 
   conf.githubInfo.repo.value = value;
@@ -73,7 +101,7 @@ async function initRepo(conf) {
 async function initBranch(conf) {
   const { owner, repo, branch } = conf.githubInfo;
   const value = await text({
-    message: `Enter your branch on ${owner.value}/${repo.value}`,
+    message: `Set your ${chalk.yellowBright('[branch]')} on ${owner.value}/${repo.value}`,
     initial: branch.value,
   });
 
@@ -82,31 +110,34 @@ async function initBranch(conf) {
 
 async function initToken(conf) {
   const type = await select({
-    message: 'Choose how to set token',
+    message: `Choose how to set ${chalk.redBright('<token>')}`,
     choices: [
       {
-        title: 'plaintext',
-        value: 'plaintext',
+        title: 'plaintext - Not recommended because it is unsafe',
+        value: enumTokenSettingType.PLAINTEXT,
       },
       {
-        title: 'environment_variables',
-        value: 'environment_variables',
+        title: 'environment_variables (recommended) - Save in environment variables',
+        value: enumTokenSettingType.ENVIRONMENT_VARIABLES,
       },
     ],
   });
 
+  curTokenSettingType = type;
+
   let token = '';
   switch (type) {
-    case 'plaintext': {
+    case enumTokenSettingType.PLAINTEXT: {
       token = await text({
-        message: 'Enter the value of the token',
+        message: `Set the value of the ${chalk.redBright('<token>')}`,
       });
       break;
     }
-    case 'environment_variables':
+    case enumTokenSettingType.ENVIRONMENT_VARIABLES:
     default: {
       token = await text({
-        message: 'Enter the name of the token, which will eventually be converted to uppercase.Such as GITHUB_TOKEN or github_token.',
+        message: `Set the name of the ${chalk.redBright('<token>')}`,
+        initial: 'GITHUB_TOKEN',
       });
 
       token = `$${token.toUpperCase()}`;
@@ -119,7 +150,7 @@ async function initToken(conf) {
 async function initSourceDir(conf) {
   const { source_dir } = conf.postSource;
   const value = await text({
-    message: 'Set the directory where posts are stored',
+    message: `Set the directory where posts are stored, ${chalk.yellowBright('[source_dir]')}`,
     initial: source_dir.value,
   });
 
@@ -130,7 +161,7 @@ async function initLinkPrefix(conf) {
   const { owner, repo, branch } = conf.githubInfo;
   const { source_dir } = conf.postSource;
   const value = await text({
-    message: '[link_prefix], used to format links in articles, and format relative links as url links',
+    message: `Set the resource access link prefix, ${chalk.yellowBright('[link_prefix]')}`,
     initial: `https://raw.githubusercontent.com/${owner.value}/${repo.value}/${branch.value}/${path.join(source_dir.value, './')}`,
   });
 
@@ -205,6 +236,7 @@ export const init = async () => {
   // const initialWay = await selectInitialWay();
   const initialWay = enumInitialWayType.SIMPLE;
 
+  streamlog('For detailed instructions on the following settings, please refer to https://github.com/isaaxite/deploy-posts-to-github-issue/blob/main/MANUAL.md');
   switch (initialWay) {
     case enumInitialWayType.SIMPLE:
     default:
@@ -216,7 +248,12 @@ export const init = async () => {
       await initLinkPrefix(conf);
   }
 
-  console.log(JSON.stringify(getConfSlim(conf), null, 2));
+  streamlog(JSON.stringify(getConfSlim(conf), null, 2));
+
+  if (curTokenSettingType === enumTokenSettingType.ENVIRONMENT_VARIABLES) {
+    const tokenName = chalk.redBright(conf.githubInfo.token.value.slice(1));
+    hinterWarn(`Please make sure you have set the environment variable named ${tokenName}.`);
+  }
 
   writeConf(conf);
 };
