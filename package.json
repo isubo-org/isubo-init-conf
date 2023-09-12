@@ -1,6 +1,6 @@
 {
   "name": "@isubo-org/init-conf",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1",
   "description": "A CLI-prompt for initializing isubo's configuration",
   "type": "module",
   "main": "main.js",
