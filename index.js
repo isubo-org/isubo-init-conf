@@ -1,6 +1,6 @@
 import path from 'path';
 import chalk from 'chalk';
-import { writeFileSync } from 'fs';
+import { existsSync, readdirSync, writeFileSync, mkdirSync, statSync } from 'fs';
 import prompts from 'prompts';
 import { dump as yamlDump } from 'js-yaml';
 import { CONF_TEMPLATE, HEADER } from './src/constant.js';
@@ -24,6 +24,11 @@ function streamlog(text) {
 function hinterWarn(text) {
   const prefix = chalk.bgGreenBright(chalk.black(' WARN '));
   streamlog(`${prefix} ${text}`);
+}
+
+function hinterError(text) {
+  const prefix = chalk.bgGreenBright(chalk.black(' ERROR '));
+  streamlog(`${prefix} ${chalk.redBright(text)}`);
 }
 
 async function text({ message, initial, ...rest }) {
@@ -149,10 +154,65 @@ async function initToken(conf) {
 
 async function initSourceDir(conf) {
   const { source_dir } = conf.postSource;
-  const value = await text({
-    message: `Set the directory where posts are stored, ${chalk.yellowBright('[source_dir]')}`,
-    initial: source_dir.value,
-  });
+  const NEW_FOLDER = 'new folder';
+  const selectExistedDir = async () => {
+    const existedDirs = readdirSync('./');
+    const choices = existedDirs
+      .filter((s) => {
+        if (s.startsWith('.')) {
+          return false;
+        }
+
+        if (!statSync(s).isDirectory()) {
+          return false;
+        }
+
+        return ![
+          'bin',
+          'scripts',
+          'node_modules',
+        ].includes(s);
+      })
+      .map((dirname) => {
+        const lastDirname = path.join(dirname, './');
+        return {
+          title: lastDirname,
+          value: lastDirname,
+        };
+      });
+    choices.push({ title: NEW_FOLDER, value: NEW_FOLDER });
+    return select({
+      message: `Select a existed directory to store the posts, ${chalk.yellowBright('[source_dir]')}`,
+      choices,
+    });
+  };
+
+  const newFolder = async () => {
+    const newFolderName = await text({
+      message: `New a directory where posts are stored, ${chalk.yellowBright('[source_dir]')}`,
+      initial: source_dir.value,
+    });
+
+    if (existsSync(newFolderName)) {
+      hinterError(`[${newFolderName}] already existed!`);
+      return newFolder();
+    }
+
+    try {
+      mkdirSync(newFolderName); 
+    } catch (error) {
+      hinterError(error.message);
+      return newFolder();
+    }
+
+    return newFolderName;
+  };
+
+  let value = await selectExistedDir();
+
+  if (value === NEW_FOLDER) {
+    value = await newFolder();
+  }
 
   conf.postSource.source_dir.value = value;
 }
